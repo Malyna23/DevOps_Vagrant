@@ -64,11 +64,9 @@ echo "Cofigure SElinux for Moodle"
 # Install required SELinux management tools:
 sudo yum install -y policycoreutils policycoreutils-python -y
 # Add Moodle files
-sudo semanage fcontext -a -t httpd_sys_rw_content_t '$/var/www/html(/.*)?'
-sudo restorecon -Rv ${WEB_DIR}
-sudo semanage fcontext -a -t httpd_sys_rw_content_t '$/var/moodledata(/.*)?'
-sudo restorecon -Rv ${MOODLE_DATA}
-# Copy Configuration File
+sudo chcon -R -t httpd_sys_rw_content_t ${MOODLE_DATA}
+sudo chcon -R -t httpd_sys_rw_content_t ${WEB_DIR}
+sudo setsebool httpd_can_network_connect true
 echo "Install Moodle from CLI"
 sudo chown -R apache:apache ${WEB_DIR}
 sudo -u apache /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
@@ -90,3 +88,14 @@ sudo -u apache /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --non-interactive \
 --agree-license
 sudo systemctl restart httpd
+echo "###"
+echo "Moodle Host IP:    ${MOODLE_IP}"
+echo "Moodle Login:      ${MOODLE_USER}"
+echo "Moodle Pass:       ${MOODLE_PASS}"
+echo "###"
+echo "Data Base Host IP: ${DB_HOST}"
+echo "Data Base Port:    ${DB_PORT}"
+echo "Data Base Name:    ${DB_NAME}"
+echo "Data Base Login:   ${DB_USER}"
+echo "Data Base Pass:    ${DB_PASS}"
+echo "###"

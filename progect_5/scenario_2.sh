@@ -1,13 +1,13 @@
 #!/bin/bash
 #Login and passwords for services
-DB_IP=$1
-DB_NAME=$2
-DB_USER=$3
-DB_PASS=$4
-DB_PORT=$5
-WEB1_IP=$6
-MOODLE_USER=$7
-MOODLE_PASS=$8
+DB_HOST="192.168.56.10"
+DB_NAME="moodle_task3"
+DB_USER="admintask3"
+DB_PASS="Test03_DBpass"
+DB_PORT="5432"
+MOODLE_IP="192.168.56.11"
+MOODLE_USER1="admin1_3"
+MOODLE_PASS="Test03_MOODLEpass"
 WEB_DIR="/var/www/html"
 MOODLE_DATA="/var/moodledata"
 echo "Check & Install updates"
@@ -83,7 +83,7 @@ upstream php-handler {
 }
 server {
     listen 80;
-    server_name $WEB1_IP;
+    server_name $MOODLE_IP;
     root $WEB_DIR;
     rewrite ^/(.*\.php)(/)(.*)$ /$CAT_FIX_2?file=/$CAT_FIX_3 last;
     location ^~ / {
@@ -150,7 +150,7 @@ echo "Install Moodle from CLI"
 sudo -u nginx /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --lang=uk \
 --chmod=2777 \
---wwwroot=http://${WEB1_IP}:80 \
+--wwwroot=http://${MOODLE_IP}:80 \
 --dataroot=${MOODLE_DATA} \
 --dbtype=pgsql \
 --dbhost=${DB_HOST} \
@@ -161,7 +161,7 @@ sudo -u nginx /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --fullname=Moodle \
 --shortname=MD \
 --summary=Moodle \
---adminuser=${MOODLE_USER} \
+--adminuser=${MOODLE_USER1} \
 --adminpass=${MOODLE_PASS} \
 --non-interactive \
 --agree-license
@@ -169,8 +169,8 @@ sudo chmod o+r ${WEB_DIR}/config.php
 sudo systemctl restart php-fpm
 sudo systemctl restart nginx
 echo "###"
-echo "Moodle Host IP:    ${WEB1_IP}"
-echo "Moodle Login:      ${MOODLE_USER}"
+echo "Moodle Host IP:    ${MOODLE_IP}"
+echo "Moodle Login:      ${MOODLE_USER1}"
 echo "Moodle Pass:       ${MOODLE_PASS}"
 echo "###"
 echo "Data Base Host IP: ${DB_HOST}"

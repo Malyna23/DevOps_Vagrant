@@ -16,7 +16,11 @@ Vagrant.configure("2") do |config|
       subconfig.vm.box = BOX_IMAGE 
       subconfig.vm.hostname = "#{MACINES_NAME}#{i}"
       subconfig.vm.network :private_network, ip: "#{IP_PART1}.#{IP_PART2}.#{IP_PART3}.#{IP_PART4 - 1 + i}"
+      subconfig.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--memory", 512]
+        vb.customize ["modifyvm", :id, "--cpus", 1]      
       subconfig.vm.provision "shell", path: "scenario_#{i}.sh"
   end
 end 
-end 
+end
+end

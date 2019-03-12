@@ -1,5 +1,3 @@
-24 lines (21 sloc)  765 Bytes
-    
 # -*- mode: ruby -*- 
 # vi: set ft=ruby : 
 # Every Vagrant development environment requires a box. You can search for 
@@ -22,4 +20,4 @@ Vagrant.configure("2") do |config|
       subconfig.vm.provision "shell", path: "scenario_#{i}.sh" 
   end
 end 
-end
+end 

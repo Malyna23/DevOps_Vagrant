@@ -1,10 +1,11 @@
 #!/bin/bash
 #Login and passwords for services
-DB_PORT=$1
-DB_NAME=$2
-DB_USER=$3
-DB_PASS=$4
-SUBNET=$5
+DB_PORT="5432"
+DB_NAME="moodle_task3"
+DB_USER="admintask3"
+DB_PASS="Test03_DBpass"
+MOODLE_HOST="192.168.56.11"
+SUBNET="192.168.56.8"
 echo "Check & Install updates"
 # Install update all and restart to apply
 sudo yum update -y
