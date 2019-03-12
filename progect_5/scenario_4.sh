@@ -1,16 +1,20 @@
 #!/bin/bash
+#
 #Login and passwords for services
 HAPROXY_IP="192.168.56.13"
 MOODLE_IP1="192.168.56.11"
 MOODLE_IP2="192.168.56.12"
 echo "Check & Install updates"
+#
 # Install EPEL, update all and restart to apply
 sudo yum update -y
+#
 # Installing HAProxy
 sudo yum install haproxy -y
 # HAProxy configuration
 sudo rm /etc/haproxy/haproxy.cfg
 sudo touch /etc/haproxy/haproxy.cfg
+#
 sudo cat <<EOF | sudo tee -a /etc/haproxy/haproxy.cfg
 global
     log         127.0.0.1 local2
@@ -51,5 +55,19 @@ backend app
     server  app1 $MOODLE_IP1:80 check
     server  app2 $MOODLE_IP2:80 check
 EOF
+#
 # Start the HAProxy service
 sudo systemctl restart haproxy
+# MEMCACHE SERVER (SESSION)
+sudo yum install memcached -y
+#Configuration MEMCACHE
+sudo touch /etc/sysconfig/memcached
+sudo cat <<EOF | sudo tee -a /etc/sysconfig/memcached
+PORT=”11211″
+USER=”memcached”
+MAXCONN=”1024″
+CACHESIZE=”64″
+OPTIONS=””
+EOF
+# Restart Session servise
+sudo systemctl restart memcached

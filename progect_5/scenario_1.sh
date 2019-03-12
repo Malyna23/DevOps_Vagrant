@@ -1,15 +1,18 @@
 #!/bin/bash
+#
 #Login and passwords for services
 DB_PORT="5432"
-DB_NAME="moodle_task3"
-DB_USER="admintask3"
-DB_PASS="Test03_DBpass"
+DB_NAME="moodle_task5"
+DB_USER="admintask5"
+DB_PASS="Test05_DBpass"
 MOODLE_HOST="192.168.56.11"
 SUBNET="192.168.56.8"
 echo "Check & Install updates"
-# Install update all and restart to apply
+#
+# Install update all
 sudo yum update -y
 echo "Install PostgreSQL"
+#
 # Install PostgreSQL
 sudo yum install -y https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-redhat11-11-2.noarch.rpm
 sudo yum install -y postgresql11-server

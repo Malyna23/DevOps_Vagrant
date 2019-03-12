@@ -1,25 +1,30 @@
 #!/bin/bash
+#
 #Login and passwords for services
 DB_HOST="192.168.56.10"
-DB_NAME="moodle_task3"
-DB_USER="admintask3"
-DB_PASS="Test03_DBpass"
+HAPROXY_HOST="192.168.56.13"
+DB_NAME="moodle_task5"
+DB_USER="admintask5"
+DB_PASS="Test05_DBpass"
 DB_PORT="5432"
 MOODLE_IP="192.168.56.12"
-MOODLE_USER2="admin2_3"
+MOODLE_USER="admin_5"
 MOODLE_PASS="Test03_MOODLEpass"
 WEB_DIR="/var/www/html"
 MOODLE_DATA="/var/moodledata"
+#
 echo "Check & Install updates"
-# Install EPEL, update all and restart to apply
+# Install EPEL, update all
 sudo yum install epel-release -y
 sudo yum update -y
+#
 echo "Install Nginx"
 sudo yum install nginx -y
 # Start the Nginx service
 sudo systemctl start nginx
 # Enable it to auto-start on boot
 sudo systemctl enable nginx
+#
 echo "Install PHP 7.2"
 # Enable the Remo repository for PHP 7.2
 sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
@@ -50,6 +55,8 @@ sudo systemctl start php-fpm
 # Change owner of the php-fpm socket file directory to nginx
 chown -R nginx:nginx /var/run/php-fpm/
 echo "Install Moodle"
+# Install required SELinux management tools:
+sudo yum -y install policycoreutils-python -y
 # Install wget to download moodle
 sudo yum install wget -y
 #Create temp foalder
@@ -59,8 +66,6 @@ sudo wget https://download.moodle.org/download.php/direct/stable35/moodle-latest
 sudo rm -rf ${WEB_DIR}
 sudo tar -zxvf moodle-latest.tgz -C /temp
 sudo mv /temp/moodle ${WEB_DIR}
-# Install required SELinux management tools:
-sudo yum -y install policycoreutils-python -y
 # Add Moodle files
 sudo mkdir ${MOODLE_DATA}
 sudo semanage fcontext -a -t httpd_sys_rw_content_t '${WEB_DIR}(/.*)?'
@@ -73,6 +78,7 @@ sudo setsebool httpd_can_network_connect true
 sudo chown -R nginx:nginx ${MOODLE_DATA}
 sudo chown -R nginx:nginx ${WEB_DIR}
 # Configure a virtual host for Moodle
+#
 # CAT SomeWay Everithing with $ is  a interpritation thats why:
 CAT_FIX_1='$uri'
 CAT_FIX_2='$1'
@@ -96,6 +102,7 @@ server {
     }
 }
 EOF
+#
 # Configuration NginX for Load Balancer
 sudo rm /etc/nginx/nginx.conf
 REMOTE_ADDR='$remote_addr'
@@ -107,6 +114,7 @@ BODY='$body'
 REFERER='$http_referer'
 AGENT='$http_user_agent'
 FORWARDED='$http_x_forwarded_for'
+#
 cat <<EOF | sudo tee -a /etc/nginx/nginx.conf
 user nginx;
 worker_processes auto;
@@ -146,6 +154,7 @@ http {
     }
 }
 EOF
+#
 echo "Install Moodle from CLI"
 sudo -u nginx /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --skip-database \
@@ -162,16 +171,29 @@ sudo -u nginx /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --fullname=Moodle \
 --shortname=MD \
 --summary=Moodle \
---adminuser=${MOODLE_USER2} \
+--adminuser=${MOODLE_USER} \
 --adminpass=${MOODLE_PASS} \
 --non-interactive \
 --agree-license
 sudo chmod o+r ${WEB_DIR}/config.php
 sudo systemctl restart php-fpm
 sudo systemctl restart nginx
+#
+# MEMCACHE Client
+sudo yum install memcached -y
+# MEMCACHE Conf
+sudo touch /etc/hosts
+sudo cat <<EOF | sudo tee -a /etc/sysconfig/memcached
+$HAPROXY_HOST session
+EOF
+# Restart Nginx and PHP-FPM
+sudo systemctl restart nginx
+sudo systemctl restart php-fpm
+# Create PHP.info file under Virtual Host
+sudo touch info.php
 echo "###"
 echo "Moodle Host IP:    ${MOODLE_IP}"
-echo "Moodle Login:      ${MOODLE_USER2}"
+echo "Moodle Login:      ${MOODLE_USER}"
 echo "Moodle Pass:       ${MOODLE_PASS}"
 echo "###"
 echo "Data Base Host IP: ${DB_HOST}"
