@@ -1,0 +1,58 @@
+# -*- mode: ruby -*- 
+# vi: set ft=ruby : 
+# Every Vagrant development environment requires a box. You can search for 
+# boxes at https://atlas.hashicorp.com/search. 
+BOX_IMAGE = "centos/7" 
+MACINES_COUNT = 4
+MACINES_NAME = "Task4"  # For Name will be added count 
+IP_3PARTS = "192.168.56"
+IP_PART4 = 10 #Next machines addresses will be + (i)
+BALANCE_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 1}"
+WEB2_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 2}"
+WEB1_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 3}"
+DB_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 4}"
+BALANCE_NAME="#{MACINES_NAME}_#{MACINES_COUNT}"
+WEB2_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 1}"
+WEB1_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 2}"
+DB_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 3}"
+
+Vagrant.configure("2") do |config|
+  (1..MACINES_COUNT).each do |i| 
+      config.vm.define "#{MACINES_NAME}_#{i}" do |subconfig|
+      subconfig.vm.box = BOX_IMAGE
+      subconfig.vm.hostname = "#{MACINES_NAME}#{i}"
+      subconfig.vm.network :private_network, ip: "#{IP_3PARTS}.#{IP_PART4 - 1 + i}"
+      subconfig.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--memory", 512]
+        vb.customize ["modifyvm", :id, "--cpus", 1]
+        if i==MACINES_COUNT
+      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_1/virtualbox/private_key", \
+        destination: "~/.ssh/#{DB_IP}.pem"
+      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_2/virtualbox/private_key", \
+        destination: "~/.ssh/#{WEB1_IP}.pem"
+      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_3/virtualbox/private_key", \
+        destination: "~/.ssh/#{WEB2_IP}.pem"
+      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_all.yml", \
+      destination: "~/pb_all.yml"
+      subconfig.vm.provision "file", source:  "ansible_playbooks/playbook.yml", \
+      destination: "~/playbook.yml"
+      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_haproxy.yml", \
+      destination: "~/pb_haproxy.yml"
+      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_nginx.yml", \
+      destination: "~/pb_nginx.yml"      
+      subconfig.vm.provision "file", source:  "shell_script/scenario_1.sh", \
+      destination: "~/scenario_1.sh"
+      subconfig.vm.provision "file", source:  "shell_script/scenario_2.sh", \
+      destination: "~/scenario_2.sh"
+      subconfig.vm.provision "file", source:  "templates/haproxy.cfg.j2", \
+      destination: "~/haproxy.cfg.j2"
+      subconfig.vm.provision "file", source:  "templates/moodle.cfg.j2", \
+      destination: "~/moodle.cfg.j2"
+      subconfig.vm.provision "file", source:  "templates/nginx.cfg.j2", \
+      destination: "~/nginx.cfg.j2"
+      subconfig.vm.provision "shell", path: "shell_script/ansible.sh" , :args => [BALANCE_IP, WEB2_IP, WEB1_IP, DB_IP, BALANCE_NAME, WEB2_NAME, WEB1_NAME, DB_NAME]
+        end
+      end
+    end
+  end 
+end

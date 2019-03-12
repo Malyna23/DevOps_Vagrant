@@ -1,0 +1,32 @@
+# -*- mode: ruby -*- 
+# vi: set ft=ruby : 
+# Every Vagrant development environment requires a box. You can search for 
+# boxes at https://atlas.hashicorp.com/search. 
+BOX_IMAGE = "centos/7" 
+MACINES_COUNT = 4
+MACINES_NAME = "Task3" # For Name will be added count 
+IP_3PARTS = "192.168.56"
+IP_PART4 = 10 #Next machines addresses will be + (i)
+DB_PORT="5432"
+DB_NAME="moodle_task3"
+DB_USER="admintask3"
+DB_PASS="Test03_DBpass"
+SUBNET="#{IP_3PARTS}.8"
+MOODLE_USER="admin_3"
+MOODLE_PASS="Test03_MOODLEpass"
+BALANCE_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 1}"
+WEB2_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 2}"
+WEB1_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 3}"
+DB_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 4}"
+
+Vagrant.configure("2") do |config|
+  (1..MACINES_COUNT).each do |i|
+    config.vm.define "#{MACINES_NAME}_#{i}" do |subconfig|
+      subconfig.vm.box = BOX_IMAGE 
+      subconfig.vm.hostname = "#{MACINES_NAME}#{i}"
+      subconfig.vm.network :private_network, ip: "#{IP_3PARTS}.#{IP_PART4 - 1 + i}"
+      subconfig.vm.provision "shell", path: "scenario_#{i}.sh" , :args => \
+      [DB_PORT, DB_NAME, DB_USER, DB_PASS, SUBNET, MOODLE_USER, MOODLE_PASS, BALANCE_IP, WEB2_IP, WEB1_IP, DB_IP  ] 
+  end
+end 
+end 

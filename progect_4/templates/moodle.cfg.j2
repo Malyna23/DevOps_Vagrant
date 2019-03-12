@@ -1,0 +1,19 @@
+upstream php-handler {
+    server unix:/var/run/php-fpm/php-fpm.sock;
+}
+
+server {
+    listen 80;
+    server_name 192.168.56.12;
+
+    root /var/www/html/moodle;
+    rewrite ^/(.*\.php)(/)(.*)$ /$1?file=/$3 last;
+    location ^~ / {
+            try_files $uri $uri/ /index.php?q=$request_uri;
+            index index.php index.html index.htm;
+            location ~ \.php$ {
+                   include fastcgi.conf;
+                   fastcgi_pass php-handler;
+            }
+    }
+}

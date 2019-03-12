@@ -1,0 +1,216 @@
+---
+- name: Install epel release
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install Nginx
+  yum:
+    name: nginx
+    state: present
+
+- name: Start Nginx
+  service:
+    name: nginx       
+    state: started
+    enabled: yes
+
+- name: Install yum-utils
+  yum:
+    name: yum-plugin-fastestmirror
+
+- name: Install Remi Repo.
+  yum:
+    name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+    state: present
+
+- name: enable remi-php72
+  shell: yum-config-manager --enable remi-php72
+
+- name: Install PHP 7.2
+  yum:
+   name:
+    - php
+    - php-fpm
+    - php-common
+    - php-pear
+    - php-opcache
+    - php-mcrypt
+    - php-cli
+    - php-pspell
+    - php-gd
+    - php-curl
+    - php-pecl-memcached
+    - php-mysql
+    - php-ldap
+    - php-zip
+    - php-fileinfo
+    - php-xml
+    - php-intl
+    - php-pecl-memcache
+    - php-readline
+    - php-mbstring
+    - php-xmlrpc
+    - php-soap
+    - php-pdo
+    - php-pgsql
+    - php-pecl-apcu
+    - php-json
+   state: latest
+   update_cache: yes
+
+- name: Changing config php.ini №
+  replace:
+    path: /etc/php.ini
+    regexp: ';cgi.fix_pathinfo=1'
+    replace: 'cgi.fix_pathinfo=0'
+ 
+- name: Changing config PHP
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: 'listen = 127.0.0.1:9000'
+    replace: 'listen = /var/run/php-fpm/php-fpm.sock'
+
+- name: Changing config PHP 10 %
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: ';listen.owner = nobody'
+    replace: 'listen.owner = nginx'
+
+- name: Changing config PHP 20 %
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: ';listen.group = nobody'
+    replace: 'listen.group = nginx'
+
+- name: Changing config PHP 40 %
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: 'user = apache'
+    replace: 'user = nginx'
+
+- name: Changing config PHP 50 %
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: 'group = apache'
+    replace: 'group = nginx'
+
+- name: Changing config PHP 60%
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: ';listen.mode = 0660'
+    replace: 'listen.mode = 0660'
+
+- name: Changing config PHP 80%
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: ';env'
+    replace: 'env'
+
+- name: Changing config PHP 100%
+  replace:
+    path: /etc/php-fpm.d/www.conf
+    regexp: ';security.limit_extensions = .php .php3 .php4 .php5 .php7'
+    replace: 'security.limit_extensions = .php'
+
+- name: Create a new directory for the php session path
+  file:
+    path: /var/lib/php/session/
+    state: directory
+    owner: nginx
+    group: nginx
+
+- name: Creates directory /var/moodledata
+  file:
+    path: /var/moodledata
+    state: directory
+    owner: nginx
+    group: nginx
+
+- name: Install required SELinux management tools
+  yum:
+    name: policycoreutils-python
+    state: present
+
+- name: Set httpd_can_network_connect flag on 
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+
+- name: Start php-fpm
+  service:
+    name: php-fpm
+    state: started
+    enabled: yes
+
+- name: Create temp foalder
+  file:
+    path: /temp
+    state: directory
+
+
+- name: Extract moodle-latest-36.tgz into /temp
+  unarchive:
+    src: https://download.moodle.org/download.php/direct/stable36/moodle-latest-36.tgz
+    dest: /temp
+    owner: nginx
+    group: nginx
+    remote_src: yes
+
+- name: Move Moodle dir to Nginx root
+  command: mv /temp/moodle /var/www/html
+
+- name: Allow to modify files in /var/moodledata
+  sefcontext:
+    target: '/var/moodledata'
+    setype: httpd_sys_rw_content_t
+    reload: True
+    state: present
+
+- name: Configure a virtual host for Moodle
+  template: src=moodle.cfg.j2 dest=/etc/nginx/conf.d/moodle.conf
+
+- name: Configure a virtual host
+  template: src=nginx.cfg.j2 dest=/etc/nginx/nginx.conf
+
+- name: Install Moodle
+  command: php /admin/cli/install.php
+   --skip-database
+   --lang=uk
+   --chmod=2777
+   --wwwroot=http://192.168.56.12:80
+   --dataroot=/var/moodledata
+   --dbtype=pgsql
+   --dbhost=192.168.56.10
+   --dbname=moodle_task4
+   --dbport=5432
+   --dbuser=admintask4
+   --dbpass=Test04_DBpass
+   --fullname=Moodle
+   --shortname=MD
+   --summary=Moodle
+   --adminuser=admin_4
+   --adminpass=Test04_MOODLEpass
+   --non-interactive
+   --agree-license
+
+  args:
+    chdir: "/var/www/html/moodle/"
+    creates: config.php
+  delegate_to: Task4_3
+  ignore_errors: yes
+
+- name: Chainge permisions for config.php
+  shell: sudo chmod o+r /var/www/html/moodle/config.php
+
+- name: Restart service php-fpm
+  service:
+    name: php-fpm
+    state: restarted
+
+- name: Restart service Nginx
+  service:
+    name: nginx
+    state: restarted
+...

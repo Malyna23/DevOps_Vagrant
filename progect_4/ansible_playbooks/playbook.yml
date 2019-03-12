@@ -1,0 +1,26 @@
+---
+- hosts: ALL
+  become: true
+  tasks:
+    - include: pb_all.yml
+
+- hosts: DB
+  become: true
+  tasks:
+    - script: /home/vagrant/scenario_1.sh
+
+- hosts: Task4_2
+  become: true
+  tasks:
+    - script: /home/vagrant/scenario_2.sh
+
+- hosts: Task4_3
+  become: true
+  tasks:
+    - include: pb_nginx.yml
+
+- hosts: LB
+  become: true
+  tasks:
+    - include: pb_haproxy.yml  
+...

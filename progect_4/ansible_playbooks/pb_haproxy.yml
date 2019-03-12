@@ -1,0 +1,20 @@
+---
+- name: Install HAproxy
+  yum: 
+    name: haproxy
+    state: present
+
+- name: Start HAproxy
+  service:
+    name: haproxy       
+    state: started
+    enabled: yes
+
+- name: Configure HAproxy
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+
+- name: Restart HAproxy
+  service:
+    name: haproxy
+    state: restarted
+...
