@@ -120,6 +120,11 @@
     owner: nginx
     group: nginx
 
+- name: Install required SELinux management tools
+  yum:
+    name: policycoreutils-python
+    state: present
+
 - name: Creates directory /var/moodledata
   file:
     path: /var/moodledata
@@ -127,16 +132,8 @@
     owner: nginx
     group: nginx
 
-- name: Install required SELinux management tools
-  yum:
-    name: policycoreutils-python
-    state: present
-
-- name: Set httpd_can_network_connect flag on 
-  seboolean:
-    name: httpd_can_network_connect
-    state: yes
-    persistent: yes
+- name: Changing SElinux policy to run in permissive mode for Nginx
+  command: semanage permissive -a httpd_t
 
 - name: Start php-fpm
   service:
@@ -144,12 +141,9 @@
     state: started
     enabled: yes
 
-- name: Create temp foalder
-  file:
-    path: /temp
-    state: directory
-
-
+- name: Create temp dir
+  command: mkdir /temp
+    
 - name: Extract moodle-latest-36.tgz into /temp
   unarchive:
     src: https://download.moodle.org/download.php/direct/stable36/moodle-latest-36.tgz
@@ -158,15 +152,13 @@
     group: nginx
     remote_src: yes
 
-- name: Move Moodle dir to Nginx root
-  command: mv /temp/moodle /var/www/html
+- name: Remove Nginx root
+  file:
+    path: /var/www/html
+    state: absent
 
-- name: Allow to modify files in /var/moodledata
-  sefcontext:
-    target: '/var/moodledata'
-    setype: httpd_sys_rw_content_t
-    reload: True
-    state: present
+- name: Move Moodle dir to Nginx root
+  shell: mv /temp/moodle /var/www/html
 
 - name: Configure a virtual host for Moodle
   template: src=moodle.cfg.j2 dest=/etc/nginx/conf.d/moodle.conf
@@ -175,34 +167,28 @@
   template: src=nginx.cfg.j2 dest=/etc/nginx/nginx.conf
 
 - name: Install Moodle
-  shell: sudo -u nginx /usr/bin/php /admin/cli/install.php
-   --skip-database
-   --lang=uk
-   --chmod=2777
-   --wwwroot=http://192.168.56.12:80
-   --dataroot=/var/moodledata
-   --dbtype=pgsql
-   --dbhost=192.168.56.10
-   --dbname=moodle_task4
-   --dbport=5432
-   --dbuser=admintask4
-   --dbpass=Test04_DBpass
-   --fullname=Moodle
-   --shortname=MD
-   --summary=Moodle
-   --adminuser=admin_4
-   --adminpass=Test04_MOODLEpass
-   --non-interactive
-   --agree-license
-
-  args:
-    chdir: "/var/www/html/moodle/"
-    creates: config.php
-  delegate_to: Task4_3
-  ignore_errors: yes
+  command: php /var/www/html/admin/cli/install.php 
+     --skip-database 
+     --lang=uk 
+     --chmod=2777 
+     --wwwroot=http://192.168.56.12:80 
+     --dataroot=/var/moodledata 
+     --dbtype=pgsql 
+     --dbhost=192.168.56.10 
+     --dbname=moodle_task4 
+     --dbport=5432 
+     --dbuser=admintask4 
+     --dbpass=Test04_DBpass 
+     --fullname=Moodle 
+     --shortname=MD 
+     --summary=Moodle 
+     --adminuser=admin_4 
+     --adminpass=Test04_MOODLEpass 
+     --non-interactive 
+     --agree-license
 
 - name: Chainge permisions for config.php
-  shell: sudo chmod o+r /var/www/html/moodle/config.php
+  shell: chmod o+r /var/www/html/config.php
 
 - name: Restart service php-fpm
   service:
