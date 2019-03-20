@@ -1,17 +1,11 @@
 #!/bin/bash
 #
 #########################################################################################################
-#Login and passwords for services #######################################################################
+# Variables #############################################################################################
 #########################################################################################################
-#
-DB_HOST="192.168.56.10"
-DB_NAME="moodle_task4"
-DB_USER="admintask4"
-DB_PASS="Test04_DBpass"
-DB_PORT="5432"
-MOODLE_IP="192.168.56.11"
-MOODLE_USER="admin_4"
-MOODLE_PASS="Test04_MOODLEpass"
+# Global Variables (From Vagrant File)
+source /home/vagrant/global_vars.sh
+# Local Variables
 WEB_DIR="/var/www/html"
 MOODLE_DATA="/var/moodledata"
 #
@@ -111,7 +105,7 @@ upstream php-handler {
 
 server {
     listen 80;
-    server_name $MOODLE_IP;
+    server_name $STREAM_WEB_IP_1;
 
     root $WEB_DIR;
     rewrite ^/(.*\.php)(/)(.*)$ /$CAT_FIX_2?file=/$CAT_FIX_3 last;
@@ -200,19 +194,19 @@ echo "Install Moodle from CLI"
 sudo -u nginx /usr/bin/php ${WEB_DIR}/admin/cli/install.php \
 --lang=uk \
 --chmod=2777 \
---wwwroot=http://${MOODLE_IP}:80 \
+--wwwroot=http://${STREAM_WEB_IP_1}:80 \
 --dataroot=${MOODLE_DATA} \
 --dbtype=pgsql \
---dbhost=${DB_HOST} \
---dbport=${DB_PORT} \
---dbname=${DB_NAME} \
---dbuser=${DB_USER} \
---dbpass=${DB_PASS} \
+--dbhost=${STREAM_DB_IP} \
+--dbport=${STREAM_DB_PORT} \
+--dbname=${STREAM_BASE_NAME} \
+--dbuser=${STREAM_DB_USER} \
+--dbpass=${STREAM_DB_PASS} \
 --fullname=Moodle \
 --shortname=MD \
 --summary=Moodle \
---adminuser=${MOODLE_USER} \
---adminpass=${MOODLE_PASS} \
+--adminuser=${STREAM_MOODLE_USER} \
+--adminpass=${STREAM_MOODLE_PASS} \
 --non-interactive \
 --agree-license
 sudo chmod o+r ${WEB_DIR}/config.php
@@ -220,13 +214,13 @@ sudo systemctl restart php-fpm
 sudo systemctl restart nginx
 #
 echo "######################################################"
-echo "Moodle Host IP:    ${MOODLE_IP}"
-echo "Moodle Login:      ${MOODLE_USER}"
-echo "Moodle Pass:       ${MOODLE_PASS}"
+echo "Moodle Host IP:    ${STREAM_WEB_IP_1}"
+echo "Moodle Login:      ${STREAM_MOODLE_USER}"
+echo "Moodle Pass:       ${STREAM_MOODLE_PASS}"
 echo "######################################################"
-echo "Data Base Host IP: ${DB_HOST}"
-echo "Data Base Port:    ${DB_PORT}"
-echo "Data Base Name:    ${DB_NAME}"
-echo "Data Base Login:   ${DB_USER}"
-echo "Data Base Pass:    ${DB_PASS}"
+echo "Data Base Host IP: ${STREAM_DB_IP}"
+echo "Data Base Port:    ${STREAM_DB_PORT}"
+echo "Data Base Name:    ${STREAM_BASE_NAME}"
+echo "Data Base Login:   ${STREAM_DB_USER}"
+echo "Data Base Pass:    ${STREAM_DB_PASS}"
 echo "######################################################"
