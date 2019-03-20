@@ -1,58 +1,219 @@
 # -*- mode: ruby -*- 
 # vi: set ft=ruby : 
 # Every Vagrant development environment requires a box. You can search for 
-# boxes at https://atlas.hashicorp.com/search. 
-BOX_IMAGE = "centos/7" 
-MACINES_COUNT = 4
-MACINES_NAME = "Task4"  # For Name will be added count 
-IP_3PARTS = "192.168.56"
-IP_PART4 = 10 #Next machines addresses will be + (i)
-BALANCE_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 1}"
-WEB2_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 2}"
-WEB1_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 3}"
-DB_IP="#{IP_3PARTS}.#{IP_PART4 + MACINES_COUNT - 4}"
-BALANCE_NAME="#{MACINES_NAME}_#{MACINES_COUNT}"
-WEB2_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 1}"
-WEB1_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 2}"
-DB_NAME="#{MACINES_NAME}_#{MACINES_COUNT - 3}"
-
+# boxes at https://atlas.hashicorp.com/search.
+##############################################################################################################
+##############################################################################################################
+# Global progect config
+BOX_IMAGE = "centos/7"
+VM_NAME = "Task4"  # For Name will be added count 
+SUBNET = "192.168.56"
+# WEB Server Config
+WEB_RAM = 512
+WEB_CPU = 1
+WEB_COUNT= 2  # Enter Number of needed Web Servers
+WEB_START_IP = 11 #Next machines addresses will be + (i)
+WEB_NAME_WITHOUT_COUNTING="#{VM_NAME}.WEB" # Lower, On 43 and 67 string of script adding count of WEB servers
+MOODLE_USER="admin_4"
+MOODLE_PASS="Test04_MOODLEpass"
+#WEB_IP = Configure Lower on 68 string
+# Database Config
+DB_NAME = "#{VM_NAME}.DB"
+DB_RAM = 512
+DB_CPU = 1
+DB_IP = "#{SUBNET}.10"
+DB_PORT = "5432"
+BASE_NAME= "moodle_task4"
+DB_USER= "admintask4"
+DB_PASS= "Test04_DBpass"
+# Load Balancer (Provision VM) Config
+LB_NAME = "#{VM_NAME}.LB"
+LB_RAM = 512
+LB_CPU = 1
+LB_IP = "#{SUBNET}.20" # If you run WEB_COUNT more than 9 you must change 20 to upper nubmer
+HAPROXY_STATS_AUTH_USER= "admintask4"
+HAPROXY_STATS_AUTH_PASS= "Test04_HPpass"
+##############################################################################################################
+##############################################################################################################
 Vagrant.configure("2") do |config|
-  (1..MACINES_COUNT).each do |i| 
-      config.vm.define "#{MACINES_NAME}_#{i}" do |subconfig|
-      subconfig.vm.box = BOX_IMAGE
-      subconfig.vm.hostname = "#{MACINES_NAME}#{i}"
-      subconfig.vm.network :private_network, ip: "#{IP_3PARTS}.#{IP_PART4 - 1 + i}"
-      subconfig.vm.provider "virtualbox" do |vb|
-        vb.customize ["modifyvm", :id, "--memory", 512]
-        vb.customize ["modifyvm", :id, "--cpus", 1]
-        if i==MACINES_COUNT
-      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_1/virtualbox/private_key", \
-        destination: "~/.ssh/#{DB_IP}.pem"
-      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_2/virtualbox/private_key", \
-        destination: "~/.ssh/#{WEB1_IP}.pem"
-      subconfig.vm.provision "file", source: ".vagrant/machines/#{MACINES_NAME}_3/virtualbox/private_key", \
-        destination: "~/.ssh/#{WEB2_IP}.pem"
-      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_all.yml", \
-      destination: "~/pb_all.yml"
-      subconfig.vm.provision "file", source:  "ansible_playbooks/playbook.yml", \
-      destination: "~/playbook.yml"
-      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_haproxy.yml", \
-      destination: "~/pb_haproxy.yml"
-      subconfig.vm.provision "file", source:  "ansible_playbooks/pb_nginx.yml", \
-      destination: "~/pb_nginx.yml"      
-      subconfig.vm.provision "file", source:  "shell_script/scenario_1.sh", \
-      destination: "~/scenario_1.sh"
-      subconfig.vm.provision "file", source:  "shell_script/scenario_2.sh", \
-      destination: "~/scenario_2.sh"
-      subconfig.vm.provision "file", source:  "templates/haproxy.cfg.j2", \
-      destination: "~/haproxy.cfg.j2"
-      subconfig.vm.provision "file", source:  "templates/moodle.cfg.j2", \
-      destination: "~/moodle.cfg.j2"
-      subconfig.vm.provision "file", source:  "templates/nginx.cfg.j2", \
-      destination: "~/nginx.cfg.j2"
-      subconfig.vm.provision "shell", path: "shell_script/ansible.sh" , :args => [BALANCE_IP, WEB2_IP, WEB1_IP, DB_IP, BALANCE_NAME, WEB2_NAME, WEB1_NAME, DB_NAME]
-        end
-      end
+# DataBASE
+  config.vm.define "#{DB_NAME}" do |dbconfig|
+    dbconfig.vm.box = BOX_IMAGE
+    dbconfig.vm.hostname = DB_NAME
+    dbconfig.vm.network :private_network, ip: DB_IP
+    dbconfig.vm.provider "virtualbox" do |db|
+      db.customize ["modifyvm", :id, "--memory", DB_RAM]
+      db.customize ["modifyvm", :id, "--cpus", DB_CPU]
     end
-  end 
+  end
+# WEB Servers 
+(1..WEB_COUNT).each do |i|
+  config.vm.define "#{WEB_NAME_WITHOUT_COUNTING}.#{i}" do |webconfig|
+    webconfig.vm.box = BOX_IMAGE
+    webconfig.vm.hostname = "#{WEB_NAME_WITHOUT_COUNTING}.#{i}"
+    webconfig.vm.network :private_network, ip: "#{SUBNET}.#{WEB_START_IP - 1 + i}"
+    webconfig.vm.provider "virtualbox" do |web|
+      web.customize ["modifyvm", :id, "--memory", WEB_RAM]
+      web.customize ["modifyvm", :id, "--cpus", WEB_CPU]
+    end
+  end
+end
+# Load Balancer (Provision VM)
+  config.vm.define "#{LB_NAME}" do |lbconfig|
+    lbconfig.vm.box = BOX_IMAGE
+    lbconfig.vm.hostname = LB_NAME
+    lbconfig.vm.network :private_network, ip: LB_IP
+    lbconfig.vm.provider "virtualbox" do |lb|
+      lb.customize ["modifyvm", :id, "--memory", LB_RAM]
+      lb.customize ["modifyvm", :id, "--cpus", LB_CPU]
+      end
+    lbconfig.vm.provision "file", source: "ansible_playbooks", destination: "~/provision/ansible_playbooks"
+    lbconfig.vm.provision "file", source: "shell_script", destination: "~/provision/shell_script"
+    lbconfig.vm.provision "file", source: "templates", destination: "~/provision/templates"
+    lbconfig.vm.provision "file", source: ".vagrant/machines/#{DB_NAME}/virtualbox/private_key", destination: "~/provision/ssh_keys/#{DB_IP}.pem"
+##############################################################################################################
+$set_andible_hosts_conf = <<SCRIPT
+mkdir /home/vagrant/provision/variables
+sudo rm /home/vagrant/hosts.txt
+tee -a "/home/vagrant/hosts.txt" > "/dev/null" <<EOF
+[ALL_VM]
+localhost ansible_connection=local
+#{DB_NAME} ansible_ssh_host=#{DB_IP} ansible_user=vagrant ansible_ssh_private_key_file=/home/vagrant/provision/ssh_keys/#{DB_IP}.pem
+[LB_VM]
+localhost ansible_connection=local
+[DB_VM]
+#{DB_NAME} ansible_ssh_host=#{DB_IP} ansible_user=vagrant ansible_ssh_private_key_file=/home/vagrant/provision/ssh_keys/#{DB_IP}.pem
+[WEB_VM]
+EOF
+SCRIPT
+##############################################################################################################
+    lbconfig.vm.provision "shell", inline: $set_andible_hosts_conf, run: "always"
+(1..WEB_COUNT).each do |n|
+        WEB_NAME="#{WEB_NAME_WITHOUT_COUNTING}.#{n}"
+        WEB_IP="#{SUBNET}.#{WEB_START_IP - 1 + n}"
+##############################################################################################################
+$set_andible_hosts_conf_add = <<SCRIPT
+sed -i '/ALL_VM/ a #{WEB_NAME} ansible_ssh_host=#{WEB_IP} ansible_user=vagrant  \
+ansible_ssh_private_key_file=/home/vagrant/provision/ssh_keys/#{WEB_IP}.pem' /home/vagrant/hosts.txt
+sed -i '/WEB_VM/ a #{WEB_NAME} ansible_ssh_host=#{WEB_IP} ansible_user=vagrant  \
+ansible_ssh_private_key_file=/home/vagrant/provision/ssh_keys/#{WEB_IP}.pem' /home/vagrant/hosts.txt
+SCRIPT
+##############################################################################################################
+$set_web_variables = <<SCRIPT
+tee -a "/home/vagrant/provision/variables/global_vars.sh" > "/dev/null" <<EOF
+# WEB Server #{n} environment variables.
+STREAM_WEB_NAME_#{n}="#{WEB_NAME}"
+STREAM_WEB_IP_#{n}="#{WEB_IP}"
+EOF
+tee -a "/home/vagrant/provision/templates/backend.cfg" > "/dev/null" <<EOF
+server  #{WEB_NAME} #{WEB_IP}:80 check
+EOF
+SCRIPT
+##############################################################################################################
+$set_db_acсess_conf = <<SCRIPT
+tee -a "/home/vagrant/provision/templates/postgre_access_vars.cfg" > "/dev/null" <<EOF
+host    all             all               #{WEB_IP}/32        password
+EOF
+SCRIPT
+##############################################################################################################
+$set_ansible_web_playbook = <<SCRIPT
+if [ "#{n}" != "1" ]
+then
+sudo sed -i '$ d' /home/vagrant/provision/ansible_playbooks/playbook.yml
+sudo tee -a "/home/vagrant/provision/ansible_playbooks/playbook.yml" > "/dev/null" <<EOF
+
+- hosts: #{WEB_NAME}
+  become: true
+  vars_files: /home/vagrant/provision/variables/vars_web_#{n}.yml
+  tasks:
+    - include: /home/vagrant/provision/ansible_playbooks/pb_nginx.yml
+...
+EOF
+else
+  sudo sed -i '$ d' /home/vagrant/provision/ansible_playbooks/playbook.yml
+  sudo tee -a "/home/vagrant/provision/ansible_playbooks/playbook.yml" > "/dev/null" <<EOF
+
+- hosts: #{WEB_NAME}
+  become: true
+  tasks:
+    - name: Copy Var file
+      template: src=/home/vagrant/provision/variables/global_vars.sh dest=/home/vagrant/global_vars.sh
+    - script: /home/vagrant/provision/shell_script/scenario_2.sh
+...
+EOF
+fi
+SCRIPT
+##############################################################################################################
+$set_ansible_vars = <<SCRIPT
+if [ "#{n}" != "1" ]
+then 
+sudo tee -a "/home/vagrant/provision/variables/vars_web_#{n}.yml" > "/dev/null" <<EOF
+    web_name: #{WEB_NAME}
+    web_ip: #{WEB_IP}
+    lb_name: #{LB_NAME}
+    lb_ip: #{LB_IP}
+    db_host_name: #{DB_NAME}
+    db_ip: #{DB_IP}
+    db_port: #{DB_PORT}
+    base_name: #{BASE_NAME}
+    db_user: #{DB_USER}
+    db_pass: #{DB_PASS}
+    moodle_user: #{MOODLE_USER}
+    moodle_pass: #{MOODLE_PASS}
+    haproxy_stats_user: #{HAPROXY_STATS_AUTH_USER}
+    haproxy_stats_pass: #{HAPROXY_STATS_AUTH_PASS}
+EOF
+else
+echo "Skipped for Main WEB VM"
+fi
+SCRIPT
+##############################################################################################################
+        lbconfig.vm.provision "shell", inline: $set_andible_hosts_conf_add, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_web_variables, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_db_acсess_conf, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_ansible_web_playbook, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_ansible_vars, run: "always"
+        lbconfig.vm.provision "file", source: ".vagrant/machines/#{WEB_NAME}/virtualbox/private_key", destination: "~/provision/ssh_keys/#{WEB_IP}.pem"
+        end
+##############################################################################################################
+$set_db_variables = <<SCRIPT
+sudo tee -a "/home/vagrant/provision/variables/global_vars.sh" > "/dev/null" <<EOF
+# DataBase environment variables.
+STREAM_DB_NAME="#{DB_NAME}"
+STREAM_DB_IP="#{DB_IP}"
+STREAM_DB_PORT="#{DB_PORT}"
+STREAM_BASE_NAME="#{BASE_NAME}"
+STREAM_DB_USER="#{DB_USER}"
+STREAM_DB_PASS="#{DB_PASS}"
+STREAM_MOODLE_USER="#{MOODLE_USER}"
+STREAM_MOODLE_PASS="#{MOODLE_PASS}"
+EOF
+SCRIPT
+##############################################################################################################
+$set_lb_variables = <<SCRIPT
+sudo tee -a "/home/vagrant/provision/variables/global_vars.sh" > "/dev/null" <<EOF
+# Load Balancer environment variables.
+STREAM_LB_NAME="#{LB_NAME}"
+STREAM_LB_IP="#{LB_IP}"
+EOF
+SCRIPT
+##############################################################################################################
+$set_lb_conf = <<SCRIPT
+sudo sed -i '$ d' /home/vagrant/provision/ansible_playbooks/playbook.yml
+sudo tee -a "/home/vagrant/provision/ansible_playbooks/playbook.yml" > "/dev/null" <<EOF
+
+- hosts: LB_VM
+  become: true
+  vars_files: /home/vagrant/provision/variables/vars_web_#{WEB_COUNT}.yml
+  tasks:
+    - include: /home/vagrant/provision/ansible_playbooks/pb_haproxy.yml
+...
+EOF
+SCRIPT
+##############################################################################################################
+        lbconfig.vm.provision "shell", inline: $set_db_variables, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_lb_variables, run: "always"
+        lbconfig.vm.provision "shell", inline: $set_lb_conf, run: "always"
+    lbconfig.vm.provision "shell", path: "shell_script/ansible.sh"
+  end
 end
