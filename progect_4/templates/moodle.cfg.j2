@@ -4,7 +4,7 @@ upstream php-handler {
 
 server {
     listen 80;
-    server_name 192.168.56.12;
+    server_name paste_here_ip_of_web;
 
     root /var/www/html;
     rewrite ^/(.*\.php)(/)(.*)$ /$1?file=/$3 last;
