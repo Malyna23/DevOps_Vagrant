@@ -11,7 +11,28 @@
     enabled: yes
 
 - name: Configure HAproxy
-  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+  template: src=/home/vagrant/provision/templates/haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+
+- name: Add backend app to conf of HAproxy
+  shell: cat /home/vagrant/provision/templates/backend.cfg >> /etc/haproxy/haproxy.cfg
+
+- name: Changing Balancer IP in conf file
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: 'paste_here_ip_of_load_balancer'
+    replace: '{{lb_ip}}'
+
+- name: Haproxy Stats User
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: 'add_user'
+    replace: '{{haproxy_stats_user}}'
+
+- name: Haproxy Stats Pass
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: 'add_password'
+    replace: '{{haproxy_stats_pass}}'
 
 - name: Restart HAproxy
   service:
