@@ -11,7 +11,7 @@
 
 - name: Start Nginx
   service:
-    name: nginx       
+    name: nginx
     state: started
     enabled: yes
 
@@ -141,8 +141,10 @@
     state: started
     enabled: yes
 
-- name: Create temp dir
-  command: mkdir /temp
+- name: Creates directory
+  file:
+    path: /temp
+    state: directory
     
 - name: Extract moodle-latest-36.tgz into /temp
   unarchive:
@@ -161,34 +163,42 @@
   shell: mv /temp/moodle /var/www/html
 
 - name: Configure a virtual host for Moodle
-  template: src=moodle.cfg.j2 dest=/etc/nginx/conf.d/moodle.conf
+  template: src=/home/vagrant/provision/templates/moodle.cfg.j2 dest=/etc/nginx/conf.d/moodle.conf
+
+- name: Add WEB Host IP
+  replace:
+    path: /etc/nginx/conf.d/moodle.conf
+    regexp: 'paste_here_ip_of_web'
+    replace: '{{web_ip}}'
 
 - name: Configure a virtual host
-  template: src=nginx.cfg.j2 dest=/etc/nginx/nginx.conf
+  template: src=/home/vagrant/provision/templates/nginx.cfg.j2 dest=/etc/nginx/nginx.conf
 
 - name: Install Moodle
   command: php /var/www/html/admin/cli/install.php 
      --skip-database 
      --lang=uk 
      --chmod=2777 
-     --wwwroot=http://192.168.56.12:80 
+     --wwwroot=http://{{web_ip}}:80 
      --dataroot=/var/moodledata 
      --dbtype=pgsql 
-     --dbhost=192.168.56.10 
-     --dbname=moodle_task4 
-     --dbport=5432 
-     --dbuser=admintask4 
-     --dbpass=Test04_DBpass 
+     --dbhost={{db_ip}} 
+     --dbname={{base_name}} 
+     --dbport={{db_port}} 
+     --dbuser={{db_user}} 
+     --dbpass={{db_pass}} 
      --fullname=Moodle 
      --shortname=MD 
      --summary=Moodle 
-     --adminuser=admin_4 
-     --adminpass=Test04_MOODLEpass 
+     --adminuser={{moodle_user}} 
+     --adminpass={{moodle_pass}} 
      --non-interactive 
      --agree-license
 
-- name: Chainge permisions for config.php
-  shell: chmod o+r /var/www/html/config.php
+- file:
+    path: /var/www/html/config.php
+    state: touch
+    mode: "o+r"
 
 - name: Restart service php-fpm
   service:
