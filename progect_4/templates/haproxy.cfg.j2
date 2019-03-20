@@ -24,15 +24,20 @@ defaults
     timeout http-keep-alive 10s
     timeout check           10s
     maxconn                 3000
-frontend  main 192.168.56.13:80
+
+frontend  main paste_here_ip_of_load_balancer:80
     acl url_static       path_beg       -i /static /images /javascript /stylesheets
     acl url_static       path_end       -i .jpg .gif .png .css .js
     use_backend static          if url_static
     default_backend             app
+    stats enable
+    stats hide-version
+    stats refresh 30s
+    stats show-node
+    stats auth add_user:add_password
+    stats uri  /haproxy?stats
 backend static
     balance     roundrobin
     server      static 127.0.0.1:4331 check
 backend app
     balance     roundrobin
-    server  app1 192.168.56.11:80 check
-    server  app2 192.168.56.12:80 check
