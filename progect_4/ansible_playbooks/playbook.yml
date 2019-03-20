@@ -1,26 +1,15 @@
 ---
-- hosts: ALL
+- hosts: ALL_VM
   become: true
   tasks:
-    - include: pb_all.yml
+    - include: /home/vagrant/provision/ansible_playbooks/pb_all.yml
 
-- hosts: DB
+- hosts: DB_VM
   become: true
   tasks:
-    - script: /home/vagrant/scenario_1.sh
-
-- hosts: Task4_2
-  become: true
-  tasks:
-    - script: /home/vagrant/scenario_2.sh
-
-- hosts: Task4_3
-  become: true
-  tasks:
-    - include: pb_nginx.yml
-
-- hosts: LB
-  become: true
-  tasks:
-    - include: pb_haproxy.yml  
+    - name: Copy Var file
+      template: src=/home/vagrant/provision/variables/global_vars.sh dest=/home/vagrant/global_vars.sh
+    - name: Configure PostgreSQL Access List
+      template: src=/home/vagrant/provision/templates/postgre_access_vars.cfg dest=/home/vagrant/postgre_access_vars.cfg
+    - script: /home/vagrant/provision/shell_script/scenario_1.sh
 ...
